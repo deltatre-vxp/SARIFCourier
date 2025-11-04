@@ -25,6 +25,7 @@ async function main() {
     const sarifData = loadJsonFile(sarifPath);
     validateSarif(sarifData);
     const mdContent = convert(sarifData);
+    const githubPRCommenter = new GitHubPRCommenter();
 
     if (argv.local) {
       const outputMdName = argv["output-file-name"] ? `${argv["output-file-name"]}.md` : 'sarif-2-md-output.md';
@@ -36,7 +37,8 @@ async function main() {
       if (!postTarget) {
         // Auto-detect: PR if PR context, else issue
         const eventName = process.env.GITHUB_EVENT_NAME;
-        const prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
+        //const prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
+        const prNumber = githubPRCommenter.pullRequestNumber || (githubPRCommenter.githubRef && githubPRCommenter.githubRef.startsWith('refs/pull/') ? githubPRCommenter.githubRef.split('/')[2] : undefined);
         if (eventName === 'pull_request' || prNumber) {
           postTarget = 'pr';
         } else {
@@ -51,12 +53,12 @@ async function main() {
       // Only extract PR number if posting to PR
       let prNumber = undefined;
       if (postTarget === 'pr') {
-        prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
+        prNumber = githubPRCommenter.pullRequestNumber || (githubPRCommenter.githubRef && githubPRCommenter.githubRef.startsWith('refs/pull/') ? githubPRCommenter.githubRef.split('/')[2] : undefined);
         if (!prNumber) {
           throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
         }
       }
-      await new GitHubPRCommenter().postComment(mdContent, driverName, postTarget);
+      await githubPRCommenter.postComment(mdContent, driverName, postTarget);
       console.log(chalk.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
     }
   } catch (e: any) {

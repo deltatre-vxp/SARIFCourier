@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as core from '@actions/core';
 
 export class GitHubPRCommenter {
   private token: string;
@@ -6,12 +7,25 @@ export class GitHubPRCommenter {
   private repo: string;
   private ref: string;
   private headers: Record<string, string>;
-
+  private prNumber: string | undefined;
+  private scanTitle: string;
+  
   constructor() {
     this.token = process.env.GITHUB_TOKEN || '';
     this.host = process.env.GITHUB_HOST || 'https://api.github.com';
-    this.repo = process.env.GITHUB_REPOSITORY || '';
-    this.ref = process.env.GITHUB_REF || '';
+    this.scanTitle = 'SAST Security Results 🚨'
+    const GITHUB_REPOSITORY = core.getInput('GITHUB_REPOSITORY');
+    const GITHUB_REF = core.getInput('GITHUB_REF');
+    const GITHUB_PR_NUMBER = core.getInput('GITHUB_PR_NUMBER');
+    if(GITHUB_REPOSITORY && (GITHUB_REF || GITHUB_PR_NUMBER)){
+      this.repo = GITHUB_REPOSITORY || '';
+      this.ref = GITHUB_REF || '';
+      this.prNumber = GITHUB_PR_NUMBER || '';
+    }else{
+      this.repo = process.env.GITHUB_REPOSITORY || '';
+      this.ref = process.env.GITHUB_REF || '';
+      this.prNumber = process.env.GITHUB_PR_NUMBER || '';
+    }
     if (!this.token) throw new Error('GITHUB_TOKEN environment variable is required.');
     if (!this.repo) throw new Error('GITHUB_REPOSITORY environment variable is required.');
     this.headers = {
@@ -19,13 +33,49 @@ export class GitHubPRCommenter {
       Accept: 'application/vnd.github.v3+json',
     };
   }
+  // ======= GETTERS =======
+
+  /** GitHub API authentication token */
+  public get githubToken(): string {
+    return this.token;
+  }
+
+  /** Base GitHub API host */
+  public get githubHost(): string {
+    return this.host;
+  }
+
+  /** Repository in owner/repo format */
+  public get repository(): string {
+    return this.repo;
+  }
+
+  /** Current Git reference (branch or PR ref) */
+  public get githubRef(): string {
+    return this.ref;
+  }
+
+  /** Pull request number (if available) */
+  public get pullRequestNumber(): string | undefined {
+    return this.prNumber;
+  }
+
+  /** Title used for SARIF or scan result comments */
+  public get securityScanTitle(): string {
+    return this.scanTitle;
+  }
+  // ======= SETTERSs =======
+  public set securityScanTitle(scanTitle:string){
+    this.scanTitle = this.scanTitle
+  }
+
 
   async postComment(body: string, driverName?: string, postTarget?: string): Promise<any> {
     // Decide whether to post to PR or issue
     let issueNumber: string | undefined = undefined;
     if (postTarget === 'pr') {
       // Extract PR number only when needed
-      let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+      let prNumber = this.prNumber || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
       if (!prNumber) {
         throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
       }
@@ -38,7 +88,7 @@ export class GitHubPRCommenter {
         const issuesResp = await axios.get(issuesUrl, { headers: this.headers });
         if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
           // Match the actual title used for the issue
-          const found = issuesResp.data.find((i: any) => i.title && i.title === 'SAST Security Results 🚨');
+          const found = issuesResp.data.find((i: any) => i.title && i.title === this.scanTitle);
           if (found) issueId = found.number;
         }
       } catch {}

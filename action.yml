@@ -1,6 +1,6 @@
 name: 'SARIF Courier'
 description: 'A GitHub Action to render SARIF Security Reports right into your Pull Requests. Without the need for GHAS support!'
-author: 'Abdullah Schahin'
+author: ''
 
 branding:
   icon: 'shield'

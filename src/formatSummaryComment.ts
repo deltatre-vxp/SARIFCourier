@@ -37,6 +37,6 @@ export function formatSummaryComment(findings: Finding[], sarifData?: any): stri
       )
     )
   ];
-  const banner = '---\n\n>🛡️ **_SARIFCourier_** by [Abdullah Schahin](https://github.com/Security-Falcon) — Delivering security insights to your developers.';
+  const banner = '---\n\n>🛡️ **_SARIFCourier_**';
   return header + tableHeader + rows.join('\n') + '\n\n' + banner;
 }
