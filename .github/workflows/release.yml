@@ -8,7 +8,8 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DigitalStreaming-Shared-Linux
     permissions:
       contents: write
       packages: write
