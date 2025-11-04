@@ -12093,30 +12093,34 @@ exports.GitHubPRCommenter = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(7269));
 class GitHubPRCommenter {
     constructor() {
+        // Core GitHub configuration
         this.token = process.env.GITHUB_TOKEN || '';
         this.host = process.env.GITHUB_HOST || 'https://api.github.com';
         this.scanTitle = 'SAST Security Results 🚨';
-        const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
-        const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
-        const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
-        console.log("Getting from input:");
-        console.log(GITHUB_REPOSITORY);
-        console.log(GITHUB_REF);
-        console.log(GITHUB_PR_NUMBER);
-        if (GITHUB_REPOSITORY && (GITHUB_REF || GITHUB_PR_NUMBER)) {
-            this.repo = GITHUB_REPOSITORY || '';
-            this.ref = GITHUB_REF || '';
-            this.prNumber = GITHUB_PR_NUMBER || '';
+        // Prefer Action inputs if defined, else fallback to normal GitHub-provided env vars
+        const inputRepository = process.env['INPUT_GITHUB_REPOSITORY'];
+        const inputRef = process.env['INPUT_GITHUB_REF'];
+        const inputPrNumber = process.env['INPUT_GITHUB_PR_NUMBER'];
+        const envRepository = process.env.GITHUB_REPOSITORY;
+        const envRef = process.env.GITHUB_REF;
+        const envPrNumber = process.env.GITHUB_PR_NUMBER;
+        console.log("🔍 Environment variable sources:");
+        console.log("INPUT_GITHUB_REPOSITORY:", inputRepository);
+        console.log("INPUT_GITHUB_REF:", inputRef);
+        console.log("INPUT_GITHUB_PR_NUMBER:", inputPrNumber);
+        console.log("GITHUB_REPOSITORY:", envRepository);
+        console.log("GITHUB_REF:", envRef);
+        console.log("GITHUB_PR_NUMBER:", envPrNumber);
+        // Resolution order: Inputs > Standard env vars
+        this.repo = inputRepository || envRepository || '';
+        this.ref = inputRef || envRef || '';
+        this.prNumber = inputPrNumber || envPrNumber || '';
+        if (!this.token) {
+            throw new Error('❌ GITHUB_TOKEN environment variable is required.');
         }
-        else {
-            this.repo = process.env.GITHUB_REPOSITORY || '';
-            this.ref = process.env.GITHUB_REF || '';
-            this.prNumber = process.env.GITHUB_PR_NUMBER || '';
+        if (!this.repo) {
+            throw new Error('❌ GITHUB_REPOSITORY or INPUT_GITHUB_REPOSITORY must be provided.');
         }
-        if (!this.token)
-            throw new Error('GITHUB_TOKEN environment variable is required.');
-        if (!this.repo)
-            throw new Error('GITHUB_REPOSITORY environment variable is required.');
         this.headers = {
             Authorization: `token ${this.token}`,
             Accept: 'application/vnd.github.v3+json',
@@ -12291,34 +12295,37 @@ async function main() {
         else {
             let postTarget = argv['post-target'];
             if (!postTarget) {
-                // Auto-detect: PR if PR context, else issue
+                // Auto-detect PR vs Issue context
                 const eventName = process.env.GITHUB_EVENT_NAME;
-                //const prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
-                const prNumber = githubPRCommenter.pullRequestNumber || (githubPRCommenter.githubRef && githubPRCommenter.githubRef.startsWith('refs/pull/') ? githubPRCommenter.githubRef.split('/')[2] : undefined);
-                if (eventName === 'pull_request' || prNumber) {
-                    postTarget = 'pr';
-                }
-                else {
-                    postTarget = 'issue';
-                }
-                console.log("EventName: ", eventName);
+                const prNumber = githubPRCommenter.pullRequestNumber ||
+                    (githubPRCommenter.githubRef &&
+                        githubPRCommenter.githubRef.startsWith('refs/pull/')
+                        ? githubPRCommenter.githubRef.split('/')[2]
+                        : undefined);
+                postTarget = eventName === 'pull_request' || prNumber ? 'pr' : 'issue';
+                console.log('EventName:', eventName);
             }
-            // Try to extract driver name for unique comment marker
+            // Identify driver name for unique comment marker
             let driverName = undefined;
             if (sarifData && Array.isArray(sarifData.runs) && ((_c = (_b = (_a = sarifData.runs[0]) === null || _a === void 0 ? void 0 : _a.tool) === null || _b === void 0 ? void 0 : _b.driver) === null || _c === void 0 ? void 0 : _c.name)) {
                 driverName = sarifData.runs[0].tool.driver.name;
             }
-            // Only extract PR number if posting to PR
+            // Validate PR context if required
             let prNumber = undefined;
             if (postTarget === 'pr') {
-                prNumber = githubPRCommenter.pullRequestNumber || (githubPRCommenter.githubRef && githubPRCommenter.githubRef.startsWith('refs/pull/') ? githubPRCommenter.githubRef.split('/')[2] : undefined);
+                prNumber =
+                    githubPRCommenter.pullRequestNumber ||
+                        (githubPRCommenter.githubRef &&
+                            githubPRCommenter.githubRef.startsWith('refs/pull/')
+                            ? githubPRCommenter.githubRef.split('/')[2]
+                            : undefined);
                 if (!prNumber) {
                     throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
                 }
             }
-            console.log("repository: ", githubPRCommenter.repository);
-            console.log("githubRef: ", githubPRCommenter.githubRef);
-            console.log("pullRequestNumber: ", githubPRCommenter.pullRequestNumber);
+            console.log('repository:', githubPRCommenter.repository);
+            console.log('githubRef:', githubPRCommenter.githubRef);
+            console.log('pullRequestNumber:', githubPRCommenter.pullRequestNumber);
             await githubPRCommenter.postComment(mdContent, driverName, postTarget);
             console.log(chalk_1.default.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
         }
@@ -12331,13 +12338,28 @@ async function main() {
     }
 }
 async function runAction() {
-    // GitHub Actions passes inputs as environment variables: INPUT_<input_name>
+    // Standard GitHub Action inputs are exposed as environment variables: INPUT_<NAME>
     const sarifFile = process.env['INPUT_SARIF_FILE'] || '';
+    const postTarget = process.env['INPUT_POST_TARGET'] || '';
+    // Additional inputs for GitHub context
+    const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
+    const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
+    const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
+    // Mirror the inputs into expected GitHub environment variables
+    if (GITHUB_REPOSITORY) {
+        process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
+    }
+    if (GITHUB_REF) {
+        process.env.GITHUB_REF = GITHUB_REF;
+    }
+    if (GITHUB_PR_NUMBER) {
+        process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
+    }
+    // Mandatory SARIF input validation
     if (!sarifFile) {
         console.error('❌ Error: Missing required input: sarif_file');
         process.exit(1);
     }
-    const postTarget = process.env['INPUT_POST_TARGET'] || '';
     // Simulate CLI args for yargs
     process.argv.push('--sarif', sarifFile);
     if (postTarget) {
