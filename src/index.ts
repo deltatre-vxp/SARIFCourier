@@ -12,6 +12,7 @@ import { GitHubPRCommenter } from './githubCommenter';
 
 async function main() {
   printBanner();
+
   const argv = yargs(hideBin(process.argv))
     .option('sarif', { type: 'string', demandOption: true, describe: 'Path to SARIF report' })
     .option('local', { type: 'boolean', default: false, describe: 'Output markdown summary locally instead of posting to GitHub' })
@@ -35,35 +36,49 @@ async function main() {
     } else {
       let postTarget = argv['post-target'];
       if (!postTarget) {
-        // Auto-detect: PR if PR context, else issue
+        // Auto-detect PR vs Issue context
         const eventName = process.env.GITHUB_EVENT_NAME;
-        //const prNumber = process.env.GITHUB_PR_NUMBER || (process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/pull/') ? process.env.GITHUB_REF.split('/')[2] : undefined);
-        const prNumber = githubPRCommenter.pullRequestNumber || (githubPRCommenter.githubRef && githubPRCommenter.githubRef.startsWith('refs/pull/') ? githubPRCommenter.githubRef.split('/')[2] : undefined);
-        if (eventName === 'pull_request' || prNumber) {
-          postTarget = 'pr';
-        } else {
-          postTarget = 'issue';
-        }
-        console.log("EventName: ", eventName)
+        const prNumber =
+          githubPRCommenter.pullRequestNumber ||
+          (githubPRCommenter.githubRef &&
+            githubPRCommenter.githubRef.startsWith('refs/pull/')
+            ? githubPRCommenter.githubRef.split('/')[2]
+            : undefined);
+
+        postTarget = eventName === 'pull_request' || prNumber ? 'pr' : 'issue';
+        console.log('EventName:', eventName);
       }
-      // Try to extract driver name for unique comment marker
+
+      // Identify driver name for unique comment marker
       let driverName = undefined;
       if (sarifData && Array.isArray(sarifData.runs) && sarifData.runs[0]?.tool?.driver?.name) {
         driverName = sarifData.runs[0].tool.driver.name;
       }
-      // Only extract PR number if posting to PR
+
+      // Validate PR context if required
       let prNumber = undefined;
       if (postTarget === 'pr') {
-        prNumber = githubPRCommenter.pullRequestNumber || (githubPRCommenter.githubRef && githubPRCommenter.githubRef.startsWith('refs/pull/') ? githubPRCommenter.githubRef.split('/')[2] : undefined);
+        prNumber =
+          githubPRCommenter.pullRequestNumber ||
+          (githubPRCommenter.githubRef &&
+            githubPRCommenter.githubRef.startsWith('refs/pull/')
+            ? githubPRCommenter.githubRef.split('/')[2]
+            : undefined);
         if (!prNumber) {
           throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
         }
-      }   
-      console.log("repository: ",githubPRCommenter.repository)
-      console.log("githubRef: ",githubPRCommenter.githubRef)
-      console.log("pullRequestNumber: ",githubPRCommenter.pullRequestNumber)
+      }
+
+      console.log('repository:', githubPRCommenter.repository);
+      console.log('githubRef:', githubPRCommenter.githubRef);
+      console.log('pullRequestNumber:', githubPRCommenter.pullRequestNumber);
+
       await githubPRCommenter.postComment(mdContent, driverName, postTarget);
-      console.log(chalk.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
+      console.log(
+        chalk.green(
+          `✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`
+        )
+      );
     }
   } catch (e: any) {
     console.error(chalk.red(`❌ Error: ${e.message}`));
@@ -74,18 +89,38 @@ async function main() {
 }
 
 async function runAction() {
-  // GitHub Actions passes inputs as environment variables: INPUT_<input_name>
+  // Standard GitHub Action inputs are exposed as environment variables: INPUT_<NAME>
   const sarifFile = process.env['INPUT_SARIF_FILE'] || '';
+  const postTarget = process.env['INPUT_POST_TARGET'] || '';
+
+  // Additional inputs for GitHub context
+  const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
+  const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
+  const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
+
+  // Mirror the inputs into expected GitHub environment variables
+  if (GITHUB_REPOSITORY) {
+    process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
+  }
+  if (GITHUB_REF) {
+    process.env.GITHUB_REF = GITHUB_REF;
+  }
+  if (GITHUB_PR_NUMBER) {
+    process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
+  }
+
+  // Mandatory SARIF input validation
   if (!sarifFile) {
     console.error('❌ Error: Missing required input: sarif_file');
     process.exit(1);
   }
-  const postTarget = process.env['INPUT_POST_TARGET'] || '';
+
   // Simulate CLI args for yargs
   process.argv.push('--sarif', sarifFile);
   if (postTarget) {
     process.argv.push('--post-target', postTarget);
   }
+
   await main();
 }
 
