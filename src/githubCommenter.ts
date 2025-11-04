@@ -1,5 +1,4 @@
 import axios from 'axios';
-import * as core from '@actions/core';
 
 export class GitHubPRCommenter {
   private token: string;
@@ -14,9 +13,13 @@ export class GitHubPRCommenter {
     this.token = process.env.GITHUB_TOKEN || '';
     this.host = process.env.GITHUB_HOST || 'https://api.github.com';
     this.scanTitle = 'SAST Security Results 🚨'
-    const GITHUB_REPOSITORY = core.getInput('GITHUB_REPOSITORY');
-    const GITHUB_REF = core.getInput('GITHUB_REF');
-    const GITHUB_PR_NUMBER = core.getInput('GITHUB_PR_NUMBER');
+    const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
+    const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
+    const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
+    console.log("Getting from input:")
+    console.log(GITHUB_REPOSITORY)
+    console.log(GITHUB_REF)
+    console.log(GITHUB_PR_NUMBER)
     if(GITHUB_REPOSITORY && (GITHUB_REF || GITHUB_PR_NUMBER)){
       this.repo = GITHUB_REPOSITORY || '';
       this.ref = GITHUB_REF || '';
