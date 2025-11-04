@@ -44,6 +44,7 @@ async function main() {
         } else {
           postTarget = 'issue';
         }
+        console.log("EventName: ", eventName)
       }
       // Try to extract driver name for unique comment marker
       let driverName = undefined;
@@ -57,7 +58,10 @@ async function main() {
         if (!prNumber) {
           throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
         }
-      }
+      }   
+      console.log("repository: ",githubPRCommenter.repository)
+      console.log("githubRef: ",githubPRCommenter.githubRef)
+      console.log("pullRequestNumber: ",githubPRCommenter.pullRequestNumber)
       await githubPRCommenter.postComment(mdContent, driverName, postTarget);
       console.log(chalk.green(`✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`));
     }
