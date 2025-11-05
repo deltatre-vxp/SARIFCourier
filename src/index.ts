@@ -37,7 +37,6 @@ async function main() {
       let postTarget = argv['post-target'];
       if (!postTarget) {
         // Auto-detect PR vs Issue context
-        const eventName = process.env.GITHUB_EVENT_NAME;
         const prNumber =
           githubPRCommenter.pullRequestNumber ||
           (githubPRCommenter.githubRef &&
@@ -45,8 +44,8 @@ async function main() {
             ? githubPRCommenter.githubRef.split('/')[2]
             : undefined);
 
-        postTarget = eventName === 'pull_request' || prNumber ? 'pr' : 'issue';
-        console.log('EventName:', eventName);
+        postTarget = prNumber ? 'pr' : 'issue';
+        console.log('EventName:', postTarget);
       }
 
       // Identify driver name for unique comment marker

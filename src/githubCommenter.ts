@@ -129,7 +129,7 @@ export class GitHubPRCommenter {
       issueNumber = issueId;
     } else {
       // Default: PR
-      let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+      let prNumber = this.prNumber || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
       if (!prNumber) {
         throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
       }
