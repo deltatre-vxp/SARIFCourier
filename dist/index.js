@@ -12101,20 +12101,17 @@ class GitHubPRCommenter {
         const inputRepository = process.env['INPUT_GITHUB_REPOSITORY'];
         const inputRef = process.env['INPUT_GITHUB_REF'];
         const inputPrNumber = process.env['INPUT_GITHUB_PR_NUMBER'];
-        const envRepository = process.env.GITHUB_REPOSITORY;
-        const envRef = process.env.GITHUB_REF;
-        const envPrNumber = process.env.GITHUB_PR_NUMBER;
         console.log("🔍 Environment variable sources:");
         console.log("INPUT_GITHUB_REPOSITORY:", inputRepository);
         console.log("INPUT_GITHUB_REF:", inputRef);
         console.log("INPUT_GITHUB_PR_NUMBER:", inputPrNumber);
-        console.log("GITHUB_REPOSITORY:", envRepository);
-        console.log("GITHUB_REF:", envRef);
-        console.log("GITHUB_PR_NUMBER:", envPrNumber);
         // Resolution order: Inputs > Standard env vars
-        this.repo = inputRepository || envRepository || '';
-        this.ref = inputRef || envRef || '';
-        this.prNumber = inputPrNumber || envPrNumber || '';
+        this.repo = inputRepository || '';
+        this.ref = inputRef || '';
+        this.prNumber = inputPrNumber || '';
+        console.log("GITHUB_REPOSITORY:", this.repo);
+        console.log("GITHUB_REF:", this.ref);
+        console.log("GITHUB_PR_NUMBER:", this.prNumber);
         if (!this.token) {
             throw new Error('❌ GITHUB_TOKEN environment variable is required.');
         }
