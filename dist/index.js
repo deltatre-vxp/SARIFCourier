@@ -12202,7 +12202,7 @@ class GitHubPRCommenter {
         }
         else {
             // Default: PR
-            let prNumber = process.env.GITHUB_PR_NUMBER || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
+            let prNumber = this.prNumber || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
             if (!prNumber) {
                 throw new Error('GITHUB_PR_NUMBER or a valid GITHUB_REF is required when posting to a PR.');
             }
@@ -12293,14 +12293,13 @@ async function main() {
             let postTarget = argv['post-target'];
             if (!postTarget) {
                 // Auto-detect PR vs Issue context
-                const eventName = process.env.GITHUB_EVENT_NAME;
                 const prNumber = githubPRCommenter.pullRequestNumber ||
                     (githubPRCommenter.githubRef &&
                         githubPRCommenter.githubRef.startsWith('refs/pull/')
                         ? githubPRCommenter.githubRef.split('/')[2]
                         : undefined);
-                postTarget = eventName === 'pull_request' || prNumber ? 'pr' : 'issue';
-                console.log('EventName:', eventName);
+                postTarget = prNumber ? 'pr' : 'issue';
+                console.log('EventName:', postTarget);
             }
             // Identify driver name for unique comment marker
             let driverName = undefined;
