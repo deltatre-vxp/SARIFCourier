@@ -13,7 +13,6 @@ export class GitHubPRCommenter {
     // Core GitHub configuration
     this.token = process.env.GITHUB_TOKEN || '';
     this.host = process.env.GITHUB_HOST || 'https://api.github.com';
-    this.scanTitle = 'SAST Security Results 🚨';
 
     // Prefer Action inputs if defined, else fallback to normal GitHub-provided env vars
     const inputRepository = process.env['INPUT_GITHUB_REPOSITORY'];
@@ -29,6 +28,11 @@ export class GitHubPRCommenter {
     this.repo = inputRepository || '';
     this.ref = inputRef || '';
     this.prNumber = inputPrNumber || '';
+    if(this.ref !== ''){
+       this.scanTitle = `🚨 Security Results for Branch: ${this.ref}`;
+    }else{
+      this.scanTitle = `🚨 Security Results for PR: ${this.prNumber}`;
+    }
 
     console.log("GITHUB_REPOSITORY:", this.repo);
     console.log("GITHUB_REF:", this.ref);
@@ -96,20 +100,26 @@ export class GitHubPRCommenter {
       issueNumber = prNumber;
     } else if (postTarget === 'issue') {
       // Try to find an open issue with a SARIF-Courier label or title, else create one
-      const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=open&labels=sarif-courier`;
+      const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=all&labels=sarif-courier`;
       let issueId: string | undefined = undefined;
+      let issue;
       try {
         const issuesResp = await axios.get(issuesUrl, { headers: this.headers });
         if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
           // Match the actual title used for the issue
           const found = issuesResp.data.find((i: any) => i.title && i.title === this.scanTitle);
-          if (found) issueId = found.number;
+          if (found) {
+            issueId = found.number;
+            issue = found
+          }
         }
-      } catch {}
+      } catch(error) {
+        throw error;
+      }
       if (!issueId) {
         // Create a new issue and return immediately (do not post a comment)
         const createResp = await axios.post(`${this.host}/repos/${this.repo}/issues`, {
-          title: 'SAST Security Results 🚨',
+          title: this.scanTitle,
           body,
           labels: ['sarif-courier']
         }, { headers: this.headers });
@@ -118,13 +128,25 @@ export class GitHubPRCommenter {
         }
         return createResp.data; // Do not post a comment if issue was just created
       } else {
-        // Add a comment to the found issue
-        const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-        const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
-        if (createResp.status !== 201) {
-          throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+        // if the issue is closed -> reopen
+        if(issue.state !== "open"){
+            const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues`, 
+              {state: "open"}, 
+              { headers: this.headers }
+            );
+          if (updateResp.status !== 200) {
+            throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
+          }
         }
-        return createResp.data;
+        //if comment already exists update it
+
+        // Add a comment to the found issue
+        // const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+        // const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
+        // if (createResp.status !== 201) {
+        //   throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+        // }
+        // return createResp.data;
       }
       issueNumber = issueId;
     } else {
@@ -143,6 +165,7 @@ export class GitHubPRCommenter {
         const existing = commentsResp.data.find((c: any) => typeof c.body === 'string' && c.body.includes(marker));
         const commentBody = `${marker}\n${body}`;
         if (existing) {
+          console.log(existing)
           // Update existing comment
           const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
           const updateResp = await axios.patch(updateUrl, { body: commentBody }, { headers: this.headers });
