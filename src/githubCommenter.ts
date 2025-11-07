@@ -7,6 +7,7 @@ export class GitHubPRCommenter {
   private ref: string;
   private headers: Record<string, string>;
   private prNumber: string | undefined;
+  private branchName: string | undefined;
   private scanTitle: string;
   
   constructor() {
@@ -18,18 +19,21 @@ export class GitHubPRCommenter {
     const inputRepository = process.env['INPUT_GITHUB_REPOSITORY'];
     const inputRef = process.env['INPUT_GITHUB_REF'];
     const inputPrNumber = process.env['INPUT_GITHUB_PR_NUMBER'];
+    const inputBranch = process.env['INPUT_GITHUB_BRANCH']
 
     console.log("🔍 Environment variable sources:");
     console.log("INPUT_GITHUB_REPOSITORY:", inputRepository);
     console.log("INPUT_GITHUB_REF:", inputRef);
     console.log("INPUT_GITHUB_PR_NUMBER:", inputPrNumber);
+    console.log("INPUT_GITHUB_BRANCH:", inputBranch);
 
     // Resolution order: Inputs > Standard env vars
     this.repo = inputRepository || '';
     this.ref = inputRef || '';
     this.prNumber = inputPrNumber || '';
-    if(this.ref !== ''){
-       this.scanTitle = `🚨 Security Results for Branch: ${this.ref}`;
+    this.branchName = inputBranch || '';
+    if(this.branchName !== ''){
+      this.scanTitle = `🚨 Security Results for Branch: ${this.branchName}`;
     }else{
       this.scanTitle = `🚨 Security Results for PR: ${this.prNumber}`;
     }
@@ -141,12 +145,12 @@ export class GitHubPRCommenter {
         //if comment already exists update it
 
         // Add a comment to the found issue
-        // const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-        // const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
-        // if (createResp.status !== 201) {
-        //   throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-        // }
-        // return createResp.data;
+        const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+        const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
+        if (createResp.status !== 201) {
+          throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+        }
+        return createResp.data;
       }
       issueNumber = issueId;
     } else {
@@ -165,7 +169,6 @@ export class GitHubPRCommenter {
         const existing = commentsResp.data.find((c: any) => typeof c.body === 'string' && c.body.includes(marker));
         const commentBody = `${marker}\n${body}`;
         if (existing) {
-          console.log(existing)
           // Update existing comment
           const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
           const updateResp = await axios.patch(updateUrl, { body: commentBody }, { headers: this.headers });

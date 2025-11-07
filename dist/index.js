@@ -12100,16 +12100,19 @@ class GitHubPRCommenter {
         const inputRepository = process.env['INPUT_GITHUB_REPOSITORY'];
         const inputRef = process.env['INPUT_GITHUB_REF'];
         const inputPrNumber = process.env['INPUT_GITHUB_PR_NUMBER'];
+        const inputBranch = process.env['INPUT_GITHUB_BRANCH'];
         console.log("🔍 Environment variable sources:");
         console.log("INPUT_GITHUB_REPOSITORY:", inputRepository);
         console.log("INPUT_GITHUB_REF:", inputRef);
         console.log("INPUT_GITHUB_PR_NUMBER:", inputPrNumber);
+        console.log("INPUT_GITHUB_BRANCH:", inputBranch);
         // Resolution order: Inputs > Standard env vars
         this.repo = inputRepository || '';
         this.ref = inputRef || '';
         this.prNumber = inputPrNumber || '';
-        if (this.ref !== '') {
-            this.scanTitle = `🚨 Security Results for Branch: ${this.ref}`;
+        this.branchName = inputBranch || '';
+        if (this.branchName !== '') {
+            this.scanTitle = `🚨 Security Results for Branch: ${this.branchName}`;
         }
         else {
             this.scanTitle = `🚨 Security Results for PR: ${this.prNumber}`;
@@ -12209,12 +12212,12 @@ class GitHubPRCommenter {
                 }
                 //if comment already exists update it
                 // Add a comment to the found issue
-                // const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-                // const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
-                // if (createResp.status !== 201) {
-                //   throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-                // }
-                // return createResp.data;
+                const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+                const createResp = await axios_1.default.post(commentsUrl, { body }, { headers: this.headers });
+                if (createResp.status !== 201) {
+                    throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+                }
+                return createResp.data;
             }
             issueNumber = issueId;
         }
@@ -12234,7 +12237,6 @@ class GitHubPRCommenter {
                 const existing = commentsResp.data.find((c) => typeof c.body === 'string' && c.body.includes(marker));
                 const commentBody = `${marker}\n${body}`;
                 if (existing) {
-                    console.log(existing);
                     // Update existing comment
                     const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
                     const updateResp = await axios_1.default.patch(updateUrl, { body: commentBody }, { headers: this.headers });
@@ -12360,6 +12362,7 @@ async function runAction() {
     const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
     const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
     const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
+    const GITHUB_BRANCH = process.env['INPUT_GITHUB_BRANCH'];
     // Mirror the inputs into expected GitHub environment variables
     if (GITHUB_REPOSITORY) {
         process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
@@ -12369,6 +12372,9 @@ async function runAction() {
     }
     if (GITHUB_PR_NUMBER) {
         process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
+    }
+    if (GITHUB_BRANCH) {
+        process.env.GITHUB_BRANCH = GITHUB_BRANCH;
     }
     // Mandatory SARIF input validation
     if (!sarifFile) {
