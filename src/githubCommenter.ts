@@ -137,10 +137,11 @@ export class GitHubPRCommenter {
       } else {
         // if the issue is closed -> reopen
         if (issueState !== "open") {
-          const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues`,
+          const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues/${issueId}`,
             { state: "open" },
             { headers: this.headers }
           );
+          console.log("Update status:", updateResp.status)
           if (updateResp.status !== 200) {
             throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
           }
