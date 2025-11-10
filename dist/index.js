@@ -12176,8 +12176,10 @@ class GitHubPRCommenter {
             const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=all&labels=sarif-courier`;
             let issueId = undefined;
             let issueState = undefined;
+            console.log(issuesUrl);
             try {
                 const issuesResp = await axios_1.default.get(issuesUrl, { headers: this.headers });
+                console.log(issuesResp);
                 if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
                     // Match the actual title used for the issue
                     const found = issuesResp.data.find((i) => i.title && i.title === this.scanTitle);
