@@ -12182,7 +12182,7 @@ class GitHubPRCommenter {
                 //console.log(issuesResp)
                 if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
                     // Match the actual title used for the issue
-                    const found = issuesResp.data.find((i) => i.title && i.title === this.scanTitle);
+                    const found = issuesResp.data.find((i) => i.title && i.title === this.scanTitle && i.state === "open");
                     if (found) {
                         issueId = found.number;
                         issueState = found.state;
