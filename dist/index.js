@@ -12213,15 +12213,14 @@ class GitHubPRCommenter {
                     if (updateResp.status !== 200) {
                         throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
                     }
+                    const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+                    const createResp = await axios_1.default.post(commentsUrl, { body }, { headers: this.headers });
+                    if (createResp.status !== 201) {
+                        throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+                    }
+                    return createResp.data;
                 }
-                //if comment already exists update it
                 // Add a comment to the found issue
-                // const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-                // const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
-                // if (createResp.status !== 201) {
-                //   throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-                // }
-                // return createResp.data;
             }
             issueNumber = issueId;
         }
