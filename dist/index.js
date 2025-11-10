@@ -12179,7 +12179,7 @@ class GitHubPRCommenter {
             console.log(issuesUrl);
             try {
                 const issuesResp = await axios_1.default.get(issuesUrl, { headers: this.headers });
-                console.log(issuesResp);
+                //console.log(issuesResp)
                 if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
                     // Match the actual title used for the issue
                     const found = issuesResp.data.find((i) => i.title && i.title === this.scanTitle);
@@ -12190,7 +12190,8 @@ class GitHubPRCommenter {
                 }
             }
             catch (error) {
-                throw error;
+                //throw error;
+                console.log(error);
             }
             if (!issueId) {
                 // Create a new issue and return immediately (do not post a comment)
