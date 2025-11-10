@@ -72,7 +72,7 @@ async function main() {
       console.log('githubRef:', githubPRCommenter.githubRef);
       console.log('pullRequestNumber:', githubPRCommenter.pullRequestNumber);
 
-      await githubPRCommenter.postComment(mdContent, driverName, postTarget);
+      await githubPRCommenter.handleComment(mdContent, driverName, postTarget);
       console.log(
         chalk.green(
           `✅: SARIF Report was posted as a ${postTarget === 'pr' ? 'PR' : 'Issue'} comment on GitHub.`

@@ -91,8 +91,43 @@ export class GitHubPRCommenter {
     this.scanTitle = this.scanTitle
   }
 
+  private async _postComment(driverName:string,issueNumber:string,body:string){
+    const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
+    const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
+    const commentBody = `${marker}\n${body}`;
+    const createResp = await axios.post(commentsUrl, { commentBody }, { headers: this.headers });
+    if (createResp.status !== 201) {
+      throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+    }
+    console.log(`Posting new comment: ${commentsUrl}`)
+    return createResp.data;
+  }
 
-  async postComment(body: string, driverName?: string, postTarget?: string): Promise<any> {
+  private async _updateComment(issueNumber:string, body:string){
+    const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${issueNumber}`;
+    const updateResp = await axios.patch(updateUrl, { body: body }, { headers: this.headers });
+    if (updateResp.status !== 200) {
+      throw new Error(`Failed to update comment: ${updateResp.status} ${updateResp.statusText}`);
+    }
+    console.log(`Updating existing comment: ${updateUrl}`)
+    return updateResp.data;
+  }
+
+  private async _changeIssueState(issueNumber:string,state:string){
+    const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues/${issueNumber}`,
+      { state: state },
+      { headers: this.headers }
+    );
+    console.log("Update status:", updateResp.status)
+    if (updateResp.status !== 200) {
+      throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
+    }
+  }
+
+  async handleComment(body: string, driverName?: string, postTarget?: string): Promise<any> {
+    if (driverName === undefined){
+      throw Error("DriveName undefined!")
+    }
     // Decide whether to post to PR or issue
     let issueNumber: string | undefined = undefined;
     if (postTarget === 'pr') {
@@ -137,22 +172,8 @@ export class GitHubPRCommenter {
       } else {
         // if the issue is closed -> reopen
         if (issueState !== "open") {
-          const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues/${issueId}`,
-            { state: "open" },
-            { headers: this.headers }
-          );
-          console.log("Update status:", updateResp.status)
-          if (updateResp.status !== 200) {
-            throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
-          }
-          const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-          const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
-          const commentBody = `${marker}\n${body}`;
-          const createResp = await axios.post(commentsUrl, { commentBody }, { headers: this.headers });
-          if (createResp.status !== 201) {
-            throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-          }
-          return createResp.data;
+          await this._changeIssueState(issueId,"open")
+          //return await this._postComment(driverName,issueId,body) 
         }
 
         // Add a comment to the found issue
@@ -170,38 +191,24 @@ export class GitHubPRCommenter {
     console.log(commentsUrl)
     if (driverName) {
       const commentsResp = await axios.get(commentsUrl, { headers: this.headers });
-      console.log("Drivername ok: ",commentsResp.data)
+      console.log("Comments: ",commentsResp.data)
       if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
         const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
         console.log(marker)
-        const existing = commentsResp.data.find((c: any) => typeof c.body === 'string' && c.body.includes(marker));
+        //get marker in first 50 chars
+        const existing = commentsResp.data.find((c: any) => typeof c.body === 'string' && c.body.substring(0,50).includes(marker));
         const commentBody = `${marker}\n${body}`;
         if (existing) {
           console.log("Existing ok: ", existing)
           // Update existing comment
-          const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
-          const updateResp = await axios.patch(updateUrl, { body: commentBody }, { headers: this.headers });
-          if (updateResp.status !== 200) {
-            throw new Error(`Failed to update comment: ${updateResp.status} ${updateResp.statusText}`);
-          }
-          return updateResp.data;
+          return await this._updateComment(existing.id,commentBody)
         } else {
-          console.log("Posting new comment")
           // Post new comment
-          const createResp = await axios.post(commentsUrl, { body: commentBody }, { headers: this.headers });
-          if (createResp.status !== 201) {
-            throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-          }
-          return createResp.data;
+          return await this._postComment(driverName,issueNumber,body)
         }
       }
     }
-    console.log("Posting new comment")
     // Fallback: just post a new comment
-    const response = await axios.post(commentsUrl, { body }, { headers: this.headers });
-    if (response.status !== 201) {
-      throw new Error(`Failed to post comment: ${response.status} ${response.statusText}`);
-    }
-    return response.data;
+    return await this._postComment(driverName,issueNumber,body)
   }
 }
