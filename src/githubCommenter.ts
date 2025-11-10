@@ -146,7 +146,9 @@ export class GitHubPRCommenter {
             throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
           }
           const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-          const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
+          const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
+          const commentBody = `${marker}\n${body}`;
+          const createResp = await axios.post(commentsUrl, { commentBody }, { headers: this.headers });
           if (createResp.status !== 201) {
             throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
           }
@@ -165,6 +167,7 @@ export class GitHubPRCommenter {
       issueNumber = prNumber;
     }
     const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
+    console.log(commentsUrl)
     if (driverName) {
       const commentsResp = await axios.get(commentsUrl, { headers: this.headers });
       console.log("Drivername ok: ",commentsResp.data)
@@ -183,6 +186,7 @@ export class GitHubPRCommenter {
           }
           return updateResp.data;
         } else {
+          console.log("Posting new comment")
           // Post new comment
           const createResp = await axios.post(commentsUrl, { body: commentBody }, { headers: this.headers });
           if (createResp.status !== 201) {
