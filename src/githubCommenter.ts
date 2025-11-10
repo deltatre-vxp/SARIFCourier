@@ -9,7 +9,7 @@ export class GitHubPRCommenter {
   private prNumber: string | undefined;
   private branchName: string | undefined;
   private scanTitle: string;
-  
+
   constructor() {
     // Core GitHub configuration
     this.token = process.env.GITHUB_TOKEN || '';
@@ -32,15 +32,15 @@ export class GitHubPRCommenter {
     this.ref = inputRef || '';
     this.prNumber = inputPrNumber || '';
     this.branchName = inputBranch || '';
-    if(this.branchName !== ''){
+    if (this.branchName !== '') {
       this.scanTitle = `🚨 Security Results for Branch: ${this.branchName}`;
-    }else{
+    } else {
       this.scanTitle = `🚨 Security Results for PR: ${this.prNumber}`;
     }
 
     console.log("GITHUB_REPOSITORY:", this.repo);
     console.log("GITHUB_REF:", this.ref);
-    console.log("GITHUB_PR_NUMBER:",  this.prNumber);
+    console.log("GITHUB_PR_NUMBER:", this.prNumber);
 
     if (!this.token) {
       throw new Error('❌ GITHUB_TOKEN environment variable is required.');
@@ -87,7 +87,7 @@ export class GitHubPRCommenter {
     return this.scanTitle;
   }
   // ======= SETTERSs =======
-  public set securityScanTitle(scanTitle:string){
+  public set securityScanTitle(scanTitle: string) {
     this.scanTitle = this.scanTitle
   }
 
@@ -106,7 +106,7 @@ export class GitHubPRCommenter {
       // Try to find an open issue with a SARIF-Courier label or title, else create one
       const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=all&labels=sarif-courier`;
       let issueId: string | undefined = undefined;
-      let issue;
+      let issueState: string | undefined = undefined;
       try {
         const issuesResp = await axios.get(issuesUrl, { headers: this.headers });
         if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
@@ -114,10 +114,10 @@ export class GitHubPRCommenter {
           const found = issuesResp.data.find((i: any) => i.title && i.title === this.scanTitle);
           if (found) {
             issueId = found.number;
-            issue = found
+            issueState = found.state;
           }
         }
-      } catch(error) {
+      } catch (error) {
         throw error;
       }
       if (!issueId) {
@@ -133,11 +133,11 @@ export class GitHubPRCommenter {
         return createResp.data; // Do not post a comment if issue was just created
       } else {
         // if the issue is closed -> reopen
-        if(issue.state !== "open"){
-            const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues`, 
-              {state: "open"}, 
-              { headers: this.headers }
-            );
+        if (issueState !== "open") {
+          const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues`,
+            { state: "open" },
+            { headers: this.headers }
+          );
           if (updateResp.status !== 200) {
             throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
           }
@@ -145,12 +145,12 @@ export class GitHubPRCommenter {
         //if comment already exists update it
 
         // Add a comment to the found issue
-        const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-        const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
-        if (createResp.status !== 201) {
-          throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-        }
-        return createResp.data;
+        // const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+        // const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
+        // if (createResp.status !== 201) {
+        //   throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+        // }
+        // return createResp.data;
       }
       issueNumber = issueId;
     } else {
@@ -164,11 +164,14 @@ export class GitHubPRCommenter {
     const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
     if (driverName) {
       const commentsResp = await axios.get(commentsUrl, { headers: this.headers });
+      console.log("Drivername ok: ",commentsResp.data)
       if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
-        const marker = `<!-- SARIFCourier:${driverName} -->`;
+        const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
+        console.log(marker)
         const existing = commentsResp.data.find((c: any) => typeof c.body === 'string' && c.body.includes(marker));
         const commentBody = `${marker}\n${body}`;
         if (existing) {
+          console.log("Existing ok: ", existing)
           // Update existing comment
           const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
           const updateResp = await axios.patch(updateUrl, { body: commentBody }, { headers: this.headers });
@@ -186,6 +189,7 @@ export class GitHubPRCommenter {
         }
       }
     }
+    console.log("Posting new comment")
     // Fallback: just post a new comment
     const response = await axios.post(commentsUrl, { body }, { headers: this.headers });
     if (response.status !== 201) {

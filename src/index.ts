@@ -93,23 +93,23 @@ async function runAction() {
   const postTarget = process.env['INPUT_POST_TARGET'] || '';
 
   // Additional inputs for GitHub context
-  const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
-  const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
-  const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
-  const GITHUB_BRANCH = process.env['INPUT_GITHUB_BRANCH']
-  // Mirror the inputs into expected GitHub environment variables
-  if (GITHUB_REPOSITORY) {
-    process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
-  }
-  if (GITHUB_REF) {
-    process.env.GITHUB_REF = GITHUB_REF;
-  }
-  if (GITHUB_PR_NUMBER) {
-    process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
-  }
-  if(GITHUB_BRANCH){
-    process.env.GITHUB_BRANCH = GITHUB_BRANCH
-  }
+  // const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
+  // const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
+  // const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
+  // const GITHUB_BRANCH = process.env['INPUT_GITHUB_BRANCH']
+  // // Mirror the inputs into expected GitHub environment variables
+  // if (GITHUB_REPOSITORY) {
+  //   process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
+  // }
+  // if (GITHUB_REF) {
+  //   process.env.GITHUB_REF = GITHUB_REF;
+  // }
+  // if (GITHUB_PR_NUMBER) {
+  //   process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
+  // }
+  // if(GITHUB_BRANCH){
+  //   process.env.GITHUB_BRANCH = GITHUB_BRANCH
+  // }
 
   // Mandatory SARIF input validation
   if (!sarifFile) {

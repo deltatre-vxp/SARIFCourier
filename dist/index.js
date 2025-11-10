@@ -12175,7 +12175,7 @@ class GitHubPRCommenter {
             // Try to find an open issue with a SARIF-Courier label or title, else create one
             const issuesUrl = `${this.host}/repos/${this.repo}/issues?state=all&labels=sarif-courier`;
             let issueId = undefined;
-            let issue;
+            let issueState = undefined;
             try {
                 const issuesResp = await axios_1.default.get(issuesUrl, { headers: this.headers });
                 if (issuesResp.status === 200 && Array.isArray(issuesResp.data)) {
@@ -12183,7 +12183,7 @@ class GitHubPRCommenter {
                     const found = issuesResp.data.find((i) => i.title && i.title === this.scanTitle);
                     if (found) {
                         issueId = found.number;
-                        issue = found;
+                        issueState = found.state;
                     }
                 }
             }
@@ -12204,7 +12204,7 @@ class GitHubPRCommenter {
             }
             else {
                 // if the issue is closed -> reopen
-                if (issue.state !== "open") {
+                if (issueState !== "open") {
                     const updateResp = await axios_1.default.patch(`${this.host}/repos/${this.repo}/issues`, { state: "open" }, { headers: this.headers });
                     if (updateResp.status !== 200) {
                         throw new Error(`Failed to create issue: ${updateResp.status} ${updateResp.statusText}`);
@@ -12212,12 +12212,12 @@ class GitHubPRCommenter {
                 }
                 //if comment already exists update it
                 // Add a comment to the found issue
-                const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
-                const createResp = await axios_1.default.post(commentsUrl, { body }, { headers: this.headers });
-                if (createResp.status !== 201) {
-                    throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
-                }
-                return createResp.data;
+                // const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueId}/comments`;
+                // const createResp = await axios.post(commentsUrl, { body }, { headers: this.headers });
+                // if (createResp.status !== 201) {
+                //   throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
+                // }
+                // return createResp.data;
             }
             issueNumber = issueId;
         }
@@ -12232,11 +12232,14 @@ class GitHubPRCommenter {
         const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
         if (driverName) {
             const commentsResp = await axios_1.default.get(commentsUrl, { headers: this.headers });
+            console.log("Drivername ok: ", commentsResp.data);
             if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
-                const marker = `<!-- SARIFCourier:${driverName} -->`;
+                const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
+                console.log(marker);
                 const existing = commentsResp.data.find((c) => typeof c.body === 'string' && c.body.includes(marker));
                 const commentBody = `${marker}\n${body}`;
                 if (existing) {
+                    console.log("Existing ok: ", existing);
                     // Update existing comment
                     const updateUrl = `${this.host}/repos/${this.repo}/issues/comments/${existing.id}`;
                     const updateResp = await axios_1.default.patch(updateUrl, { body: commentBody }, { headers: this.headers });
@@ -12255,6 +12258,7 @@ class GitHubPRCommenter {
                 }
             }
         }
+        console.log("Posting new comment");
         // Fallback: just post a new comment
         const response = await axios_1.default.post(commentsUrl, { body }, { headers: this.headers });
         if (response.status !== 201) {
@@ -12359,23 +12363,23 @@ async function runAction() {
     const sarifFile = process.env['INPUT_SARIF_FILE'] || '';
     const postTarget = process.env['INPUT_POST_TARGET'] || '';
     // Additional inputs for GitHub context
-    const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
-    const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
-    const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
-    const GITHUB_BRANCH = process.env['INPUT_GITHUB_BRANCH'];
-    // Mirror the inputs into expected GitHub environment variables
-    if (GITHUB_REPOSITORY) {
-        process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
-    }
-    if (GITHUB_REF) {
-        process.env.GITHUB_REF = GITHUB_REF;
-    }
-    if (GITHUB_PR_NUMBER) {
-        process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
-    }
-    if (GITHUB_BRANCH) {
-        process.env.GITHUB_BRANCH = GITHUB_BRANCH;
-    }
+    // const GITHUB_REPOSITORY = process.env['INPUT_GITHUB_REPOSITORY'];
+    // const GITHUB_REF = process.env['INPUT_GITHUB_REF'];
+    // const GITHUB_PR_NUMBER = process.env['INPUT_GITHUB_PR_NUMBER'];
+    // const GITHUB_BRANCH = process.env['INPUT_GITHUB_BRANCH']
+    // // Mirror the inputs into expected GitHub environment variables
+    // if (GITHUB_REPOSITORY) {
+    //   process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
+    // }
+    // if (GITHUB_REF) {
+    //   process.env.GITHUB_REF = GITHUB_REF;
+    // }
+    // if (GITHUB_PR_NUMBER) {
+    //   process.env.GITHUB_PR_NUMBER = GITHUB_PR_NUMBER;
+    // }
+    // if(GITHUB_BRANCH){
+    //   process.env.GITHUB_BRANCH = GITHUB_BRANCH
+    // }
     // Mandatory SARIF input validation
     if (!sarifFile) {
         console.error('❌ Error: Missing required input: sarif_file');
