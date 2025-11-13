@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { eventNames } from 'process';
 
 export class GitHubPRCommenter {
   private token: string;
@@ -113,9 +114,9 @@ export class GitHubPRCommenter {
     return updateResp.data;
   }
 
-  private async _changeIssueState(issueNumber:string,state:string){
+  private async _updateIssue(issueNumber:string,state:string,body:string){
     const updateResp = await axios.patch(`${this.host}/repos/${this.repo}/issues/${issueNumber}`,
-      { state: state },
+      { state: state, body: body},
       { headers: this.headers }
     );
     console.log("Update status:", updateResp.status)
@@ -171,14 +172,10 @@ export class GitHubPRCommenter {
         return createResp.data; // Do not post a comment if issue was just created
       } else {
         // if the issue is closed -> reopen
-        if (issueState !== "open") {
-          await this._changeIssueState(issueId,"open")
-          //return await this._postComment(driverName,issueId,body) 
-        }
-
-        // Add a comment to the found issue
+        const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
+        const commentBody = `${marker}\n${body}`;
+        await this._updateIssue(issueId,"open",commentBody)
       }
-      issueNumber = issueId;
     } else {
       // Default: PR
       let prNumber = this.prNumber || (this.ref.startsWith('refs/pull/') ? this.ref.split('/')[2] : undefined);
@@ -187,9 +184,9 @@ export class GitHubPRCommenter {
       }
       issueNumber = prNumber;
     }
-    const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
-    console.log(commentsUrl)
-    if (driverName) {
+    if(postTarget === "pr" && issueNumber){
+      const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
+      console.log(commentsUrl)
       const commentsResp = await axios.get(commentsUrl, { headers: this.headers });
       console.log("Comments: ",commentsResp.data)
       if (commentsResp.status === 200 && Array.isArray(commentsResp.data)) {
@@ -209,6 +206,6 @@ export class GitHubPRCommenter {
       }
     }
     // Fallback: just post a new comment
-    return await this._postComment(driverName,issueNumber,body)
+    //return await this._postComment(driverName,issueNumber,body)
   }
 }
