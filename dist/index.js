@@ -12164,7 +12164,9 @@ class GitHubPRCommenter {
         const commentsUrl = `${this.host}/repos/${this.repo}/issues/${issueNumber}/comments`;
         const marker = `<!-- SARIFCourier:${driverName || ""} -->`;
         const commentBody = `${marker}\n${body}`;
-        const createResp = await axios_1.default.post(commentsUrl, { commentBody }, { headers: this.headers });
+        console.log(commentsUrl);
+        console.log(commentBody);
+        const createResp = await axios_1.default.post(commentsUrl, { body: commentBody }, { headers: this.headers });
         if (createResp.status !== 201) {
             throw new Error(`Failed to post comment: ${createResp.status} ${createResp.statusText}`);
         }
