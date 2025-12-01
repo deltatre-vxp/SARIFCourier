@@ -21,7 +21,7 @@ export function formatSummaryComment(findings: Finding[], sarifData?: any): stri
 
 </details>
 `;
-  const reportDate = new Date().toLocaleDateString()
+  const reportDate = new Date().toLocaleString()
   const header =
     `# 🛡️ Security Findings Summary 🛡️\n` +
     `<details>\n<summary><strong>Details</strong></summary>\n\n` +

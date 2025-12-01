@@ -12062,7 +12062,7 @@ function formatSummaryComment(findings, sarifData) {
 
 </details>
 `;
-    const reportDate = new Date().toLocaleDateString();
+    const reportDate = new Date().toLocaleString();
     const header = `# 🛡️ Security Findings Summary 🛡️\n` +
         `<details>\n<summary><strong>Details</strong></summary>\n\n` +
         `- Scanner: \`${driver}\`\n` +
