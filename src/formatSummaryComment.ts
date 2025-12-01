@@ -21,6 +21,7 @@ export function formatSummaryComment(findings: Finding[], sarifData?: any): stri
 
 </details>
 `;
+  const reportDate = new Date().toLocaleDateString()
   const header =
     `# 🛡️ Security Findings Summary 🛡️\n` +
     `<details>\n<summary><strong>Details</strong></summary>\n\n` +
@@ -28,7 +29,8 @@ export function formatSummaryComment(findings: Finding[], sarifData?: any): stri
     `- Total Findings: \`${findings.length}\`\n` +
     `- Source: SARIF\n` +
     `</details>\n\n` +
-    legend + '\n';
+    legend + '\n'+  `<strong>Report date:  \`${reportDate}\`</strong>\n`;
+    
   const tableHeader = '| Severity | Location | Rule ID | Message |\n|:--:|---------|---------|---------|\n';
   const rows = [
     ...(['error', 'warning', 'note'] as const).flatMap(level =>

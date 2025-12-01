@@ -12062,13 +12062,14 @@ function formatSummaryComment(findings, sarifData) {
 
 </details>
 `;
+    const reportDate = new Date().toLocaleDateString();
     const header = `# 🛡️ Security Findings Summary 🛡️\n` +
         `<details>\n<summary><strong>Details</strong></summary>\n\n` +
         `- Scanner: \`${driver}\`\n` +
         `- Total Findings: \`${findings.length}\`\n` +
         `- Source: SARIF\n` +
         `</details>\n\n` +
-        legend + '\n';
+        legend + '\n' + `<strong>Report date:  \`${reportDate}\`</strong>\n`;
     const tableHeader = '| Severity | Location | Rule ID | Message |\n|:--:|---------|---------|---------|\n';
     const rows = [
         ...['error', 'warning', 'note'].flatMap(level => grouped[level].map(f => `| ${f.severity} | [${path_1.default.basename(f.file)}#L${f.line}](../blob/${branch}/${f.file}#L${f.line}) | ${f.rule_id} | ${f.message_text} |`))
