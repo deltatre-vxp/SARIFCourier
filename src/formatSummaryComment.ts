@@ -15,9 +15,9 @@ export function formatSummaryComment(findings: Finding[], sarifData?: any): stri
 
 | Icon | Severity |
 |:------:|----------|
-| <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/critical.svg\" alt=\"error\" width=\"18\" /> | CRITICAL / HIGH   |
-| <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/medium.svg\" alt=\"warning\" width=\"18\" /> | MEDIUM |
-| <img src=\"https://raw.githubusercontent.com/Abdullah-Schahin/icons/main/low.svg\" alt=\"note\" width=\"18\" /> | LOW    |
+| <img src=\"https://raw.githubusercontent.com/deltatre-vxp/SARIFCourier/5ab36c722b15be33384f604bc6f80402b13d6857/critical.svg\" alt=\"error\" width=\"18\" /> | CRITICAL / HIGH   |
+| <img src=\"https://raw.githubusercontent.com/deltatre-vxp/SARIFCourier/5ab36c722b15be33384f604bc6f80402b13d6857/medium.svg\" alt=\"warning\" width=\"18\" /> | MEDIUM |
+| <img src=\"https://raw.githubusercontent.com/deltatre-vxp/SARIFCourier/5ab36c722b15be33384f604bc6f80402b13d6857/low.svg\" alt=\"note\" width=\"18\" /> | LOW    |
 
 </details>
 `;
